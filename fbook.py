@@ -20,7 +20,7 @@ def get_menu_choice(user_name):
     while choice not in range(0,5):
         try:
             choice = int(input("Please choose an option:  "))
-            if choice not in range(0,4):
+            if choice not in range(0,5):
                 print(" \nInvalid option")
         except ValueError:
                 print("Please choose a menu item by integer")
