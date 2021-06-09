@@ -3,7 +3,7 @@ import glob
 import sys
 import os
 
-def menu_choice(user_name):
+def get_menu_choice(user_name):
 
     print('''
      \nFacebook Data Parser
@@ -60,16 +60,17 @@ def get_matchlist(guest_name):
     path = os.getcwd() + '\\messages\\inbox\\*{}*_*'.format(guest_name)
     for name in glob.glob(path):
         name_index = name.find(guest_name)    
-        if(name_index != -1):   
-            shortname = name[name.rfind('\\')+1:name.find("_")]
-            #print('appending',shortname
-            
-            #print('appending',shortname)
-            if len(shortname) <= 20:
-                matchlist.append(shortname)
-        # get rid of dupes and sort
-    #print(type(matchlist),matchlist)
-    #print({v: k for k, v in matchlist.items()})
+        if(name_index != -1):  
+            name += '\\message_1.json'
+            with open(name) as file:
+                data = json.loads(file.read())
+                match_name = recursive_lookup('title',data)  
+
+                # eliminates many conversations w/ multiple parties
+                # TODO - eliminate multi party conversations via participant info in json       
+                if (len(match_name) <= 20):
+                    matchlist.append(match_name)
+
     matchlist = set(matchlist)
     
     return list(matchlist)
@@ -80,7 +81,7 @@ def get_int_input():
         if choice.isdigit():
             return int(choice)
         else: 
-            print("Input must be an integer")
+            print("-- Error! -- Input must be an integer menu choice.")
 
 def print_matchlist_menu(matchlist):
     for i in range(0, len(matchlist)):
@@ -97,7 +98,15 @@ def get_user_name():
             # TODO save email here for report option
             if key == 'FULL_NAME':
                 return d_info[key][0]
-    
+
+# finds key k in dict d, returns value of k
+def recursive_lookup(k, d):
+    if k in d:
+        return d[k]
+    for v in d.values():
+        if isinstance(v, dict):
+            return recursive_lookup(k, v)
+    return None
 
 def get_word_count(user_name, match_name, path):
     my_message_count = 0
@@ -109,12 +118,12 @@ def get_word_count(user_name, match_name, path):
                 if(message["sender_name"] == user_name):
                     my_message_count += 1
 
-                if(message["sender_name"].replace(" ","").lower() == match_name):
+                if(message["sender_name"] == match_name):
                     other_message_count += 1
 
     print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
     print("{}'s message count: {}".format(match_name,str(other_message_count )))
-                    
+
 def get_common_words(path,indiv):
     dict_of_all_words = {}
     
@@ -163,10 +172,9 @@ while True:
 
     user_name = get_user_name()
 
-    choice = menu_choice(user_name)
+    choice = get_menu_choice(user_name)
 
     name_match_input = get_name_input()
-
     matchlist = get_matchlist(name_match_input)
 
     print_matchlist_menu(matchlist)
@@ -176,9 +184,7 @@ while True:
         sys.exit()
     else: match_name = matchlist[match_choice-1]
 
-
-
-    path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(match_name)
+    path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(match_name.replace(" ","").lower())
 
     if choice == 1: 
         get_word_count(user_name,match_name,path)
