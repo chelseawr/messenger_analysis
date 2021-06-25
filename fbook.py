@@ -1,7 +1,10 @@
 import json
 import glob
 import sys
+import datetime
 import os
+import plotly.express as px
+from collections import namedtuple, defaultdict
 
 def get_menu_choice(user_name):
 
@@ -109,20 +112,53 @@ def recursive_lookup(k, d):
     return None
 
 def get_word_count(user_name, match_name, path):
+    hour_count = defaultdict(int)
+    month_count = defaultdict(int)
+    day_count = defaultdict(int)
+    day_name_count = defaultdict(int)
     my_message_count = 0
     other_message_count = 0
+    last_date = None
+    first_date = None
+
     for name in glob.glob(path):
         with open(name) as json_file:
             data = json.load(json_file)
             for message in data["messages"]:
+                date = datetime.datetime.fromtimestamp(message['timestamp_ms']/1000.0)
+                month = date.strftime('%Y-%m')
+                day = date.strftime('%Y-%m-%d')
+                day_name = date.strftime('%A')
+                hour = date.time().hour
+            
+                # Increment message counts
+                hour_count[hour] += 1 
+                day_name_count[day_name] += 1 
+                day_count[day] += 1
+                month_count[month] += 1
+
+                 # Determine start and last dates of messages 
+                if (first_date and first_date > date) or not first_date:
+                    first_date = date 
+                if (last_date and last_date < date) or not last_date:
+                    last_date = date 
+
                 if(message["sender_name"] == user_name):
                     my_message_count += 1
 
                 if(message["sender_name"] == match_name):
                     other_message_count += 1
+    
+     # Get the number of days the messages span over
+    num_days = (last_date - first_date).days
 
-    print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
-    print("{}'s message count: {}".format(match_name,str(other_message_count )))
+    print('over {} days',num_days)
+
+    fig = px.line(month_count)
+    fig.show()
+
+  #  print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
+  #  print("{}'s message count: {}".format(match_name,str(other_message_count )))
 
 def get_common_words(path,indiv):
     dict_of_all_words = {}
@@ -169,6 +205,7 @@ while True:
         if name only matches 1 item, dont ask
         refactor menus to reuse code - https://stackoverflow.com/a/19964792
         '''
+    
 
     user_name = get_user_name()
 
