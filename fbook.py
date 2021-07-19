@@ -3,7 +3,7 @@ import glob
 import sys
 import datetime
 import os
-import plotly.express as px
+#import plotly.express as px
 from collections import namedtuple, defaultdict
 
 def get_menu_choice(user_name):
@@ -74,9 +74,7 @@ def get_matchlist(guest_name):
                 if (len(match_name) <= 20):
                     matchlist.append(match_name)
 
-    matchlist = set(matchlist)
-    
-    return list(matchlist)
+    return sorted(set(matchlist))
 
 def get_int_input():
     while True:
@@ -148,17 +146,26 @@ def get_word_count(user_name, match_name, path):
 
                 if(message["sender_name"] == match_name):
                     other_message_count += 1
-    
+
      # Get the number of days the messages span over
     num_days = (last_date - first_date).days
+    print('starting on',first_date.strftime("%A %B %d %Y"))
+   # print(first_date.strftime("%I:%M %p"))
+    #print('over {} days'.format(num_days))
 
-    print('over {} days',num_days)
+    max_month = max(month_count, key=lambda key: month_count[key])
+    max_month_count = month_count.get(max_month)
 
-    fig = px.line(month_count)
-    fig.show()
+    max_day = max(day_count, key=lambda key: day_count[key])
+    max_day_count = day_count.get(max_day)
+    print('Highest month:\n{} with {} messsages'.format(max_month, max_month_count))
+    print('Highest day:\n{} with {} messsages'.format(max_day, max_day_count))
+ 
+  #  fig = px.line(month_count)
+  #  fig.show()
 
-  #  print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
-  #  print("{}'s message count: {}".format(match_name,str(other_message_count )))
+    print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
+    print("{}'s message count: {}".format(match_name,str(other_message_count )))
 
 def get_common_words(path,indiv):
     dict_of_all_words = {}
