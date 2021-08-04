@@ -3,7 +3,8 @@ import glob
 import sys
 import datetime
 import os
-#import plotly.express as px
+import plotly.express as px
+import pprint
 from collections import namedtuple, defaultdict
 
 def get_menu_choice(user_name):
@@ -114,6 +115,7 @@ def get_word_count(user_name, match_name, path):
     month_count = defaultdict(int)
     day_count = defaultdict(int)
     day_name_count = defaultdict(int)
+    friends_list = defaultdict(str)
     my_message_count = 0
     other_message_count = 0
     last_date = None
@@ -160,13 +162,17 @@ def get_word_count(user_name, match_name, path):
     max_day_count = day_count.get(max_day)
     print('Highest month:\n{} with {} messsages'.format(max_month, max_month_count))
     print('Highest day:\n{} with {} messsages'.format(max_day, max_day_count))
- 
-  #  fig = px.line(month_count)
-  #  fig.show()
+    month_vals = list(month_count.values())
+    month_dates = list(month_count.keys())
 
+    the_dict = {'dates':month_dates, 'y_vals':month_vals}
+    fig = px.bar(the_dict, x='dates', y='y_vals')
+    # fig = px.line(month_count)
+    fig.show()
+   # print(pprint.pprint(month_count))
     print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
     print("{}'s message count: {}".format(match_name,str(other_message_count )))
-
+   # print(pp(month_count))
 def get_common_words(path,indiv):
     dict_of_all_words = {}
     
