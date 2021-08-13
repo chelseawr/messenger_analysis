@@ -1,11 +1,13 @@
+from __future__ import print_function, unicode_literals
 import json
 import glob
 import sys
 import datetime
 import os
 import plotly.express as px
-import pprint
+from pprint import pprint
 from collections import namedtuple, defaultdict
+from PyInquirer import prompt, Separator
 
 def get_menu_choice(user_name):
 
@@ -169,6 +171,7 @@ def get_word_count(user_name, match_name, path):
     fig = px.bar(the_dict, x='dates', y='y_vals')
     # fig = px.line(month_count)
     fig.show()
+    
    # print(pprint.pprint(month_count))
     print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
     print("{}'s message count: {}".format(match_name,str(other_message_count )))
@@ -203,6 +206,18 @@ def get_common_words(path,indiv):
     sorted_words_by_frequency = sorted(dict_of_all_words, key = dict_of_all_words.get, reverse = True)
     print(" \nMost common words sent: " + str(sorted_words_by_frequency[:50])) #print the top 10
 
+firstMenu = {
+        'type': 'list',
+        'name': 'first-menu',
+        'message': 'Pick a menu option',
+        'choices': [
+            'Word count',
+            'Most common words, combined',
+            'All of the above',
+            'Quit'
+        ]
+    }
+
 while True:
         
 
@@ -218,11 +233,19 @@ while True:
         if name only matches 1 item, dont ask
         refactor menus to reuse code - https://stackoverflow.com/a/19964792
         '''
-    
+
+
 
     user_name = get_user_name()
 
-    choice = get_menu_choice(user_name)
+    answers = prompt(firstMenu)
+    choice = answers.get('first-menu')
+
+    if choice == 'Quit':
+        print('Goodbye {}!'.format(user_name))
+        sys.exit()
+
+    #choice = get_menu_choice(user_name)
 
     name_match_input = get_name_input()
     matchlist = get_matchlist(name_match_input)
@@ -236,17 +259,17 @@ while True:
 
     path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(match_name.replace(" ","").lower())
 
-    if choice == 1: 
+    if choice == 'Word count': 
         get_word_count(user_name,match_name,path)
-    elif choice == 2:
+    elif choice == 'Most common words, combined':
         print('most common words individually between {} and {}'.format(user_name,match_name))
         indiv = 1
         print('---------in progress----------\n')
-    elif choice == 3:
+    elif choice == 'Most common words, combined':
         print('most common words between {} and {}'.format(user_name,match_name))
         indiv = 0
         get_common_words(path,indiv)
-    elif choice == 4:
+    elif choice == 'All of the above':
         print('all of the above')
         indiv = 0
         get_common_words(path,indiv)
