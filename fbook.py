@@ -9,33 +9,6 @@ from pprint import pprint
 from collections import namedtuple, defaultdict
 from PyInquirer import prompt, Separator
 
-def get_menu_choice(user_name):
-
-    print('''
-     \nFacebook Data Parser
-
-    Welcome {}!
-    1: Word count
-    2: Most common words, individually
-    3: Most common words, combined
-    4: All of the above
-    0: quit\n '''.format(user_name))
-    
-    choice = 99
-
-    while choice not in range(0,5):
-        try:
-            choice = int(input("Please choose an option:  "))
-            if choice not in range(0,5):
-                print(" \nInvalid option")
-        except ValueError:
-                print("Please choose a menu item by integer")
-    if choice == 0:
-        print('Goodbye {}!'.format(user_name))
-        sys.exit()
-
-    return choice
-   
 def file_to_list(file_name):
     result = []
     file = open(file_name,"r")
@@ -45,21 +18,7 @@ def file_to_list(file_name):
         result.append(line)
     return result
 
-def get_name_input():
-    prompt = "Who would you like to search for:  "
-    while True:
-        #try:
-        orig_input = input(prompt).replace(" ","")
-        if orig_input == 0:
-            sys.exit()
-        elif orig_input.isalpha():
-            return str(orig_input).lower()
-            
-        else:
-            print("Input must be a string")
-        #except ValueError:
-         #   print("Input must be a string")
-          #  continue
+
 
 def get_matchlist(guest_name):
     matchlist = []
@@ -76,8 +35,10 @@ def get_matchlist(guest_name):
                 # TODO - eliminate multi party conversations via participant info in json       
                 if (len(match_name) <= 20):
                     matchlist.append(match_name)
-
-    return sorted(set(matchlist))
+                
+    matchlist = sorted(set(matchlist))
+    matchlist.append('Quit')
+    return matchlist
 
 def get_int_input():
     while True:
@@ -176,6 +137,7 @@ def get_word_count(user_name, match_name, path):
     print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
     print("{}'s message count: {}".format(match_name,str(other_message_count )))
    # print(pp(month_count))
+
 def get_common_words(path,indiv):
     dict_of_all_words = {}
     
@@ -206,22 +168,57 @@ def get_common_words(path,indiv):
     sorted_words_by_frequency = sorted(dict_of_all_words, key = dict_of_all_words.get, reverse = True)
     print(" \nMost common words sent: " + str(sorted_words_by_frequency[:50])) #print the top 10
 
-firstMenu = {
-        'type': 'list',
-        'name': 'first-menu',
-        'message': 'Pick a menu option',
-        'choices': [
-            'Word count',
-            'Most common words, combined',
-            'All of the above',
-            'Quit'
-        ]
-    }
+def get_name_input():
+    prompt = "Who would you like to search for:  "
+    while True:
+        #try:
+        orig_input = input(prompt).replace(" ","")
+        print('orig input',orig_input)
+        if orig_input == 0:
+            sys.exit()
+        elif orig_input.isalpha():
+            return str(orig_input).lower()
+            
+        else:
+            print("Input must be a string")
+        #except ValueError:
+         #   print("Input must be a string")
+          #  continue
+
+def is_input_valid(value):
+    if value.isalpha() and value is not 0:
+        return True
+    else: return False
+
+def search_filter(value):
+    return value.replace(" ","").lower()
+
+first_menu = {
+    'type': 'list',
+    'name': 'menu_opt',
+    'message': 'Pick a menu option',
+    'choices': [
+        'Word count',
+        'Most common words, individually',
+        'Most common words, combined',
+        'All of the above',
+        'Quit'
+    ]
+}
+search_name_menu = {
+    'type': 'input',
+    'name': 'name_input',
+    'message':'Who would you like to search for?',
+    'validate': is_input_valid,
+    'filter': search_filter
+}
+
+
 
 while True:
         
-
     TODO = ''' 
+
         finish individual top words
         save other party name from message thread
         message[type] filter + counter
@@ -231,48 +228,53 @@ while True:
         add option for how many top words to show
 
         if name only matches 1 item, dont ask
-        refactor menus to reuse code - https://stackoverflow.com/a/19964792
         '''
 
 
-
     user_name = get_user_name()
+    print('\nFacebook Data Parser\nWelcome {}!\n'.format(user_name))
 
-    answers = prompt(firstMenu)
-    choice = answers.get('first-menu')
-
-    if choice == 'Quit':
+    # first menu
+    first_menu_ans = prompt(first_menu)
+    menu_choice = first_menu_ans.get('menu_opt')
+    if menu_choice == 'Quit':
         print('Goodbye {}!'.format(user_name))
         sys.exit()
 
-    #choice = get_menu_choice(user_name)
+    # who to search for
+    search_name_ans = prompt(search_name_menu)
+    search_val = search_name_ans.get('name_input')
 
-    name_match_input = get_name_input()
-    matchlist = get_matchlist(name_match_input)
-
-    print_matchlist_menu(matchlist)
-    match_choice = get_int_input()
-    if match_choice == 0:
-        print('Goodbye {}!'.format(user_name))
-        sys.exit()
-    else: match_name = matchlist[match_choice-1]
+    #  who menu
+    choose_name_menu = {
+        'type': 'list',
+        'name': 'name_opt',
+        'message': 'Choose a name:',
+        'choices': get_matchlist(search_val)
+    }
+    
+    # get name choice
+    ans_arr = prompt(choose_name_menu)
+    match_name = ans_arr.get('name_opt')
+   
 
     path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(match_name.replace(" ","").lower())
 
-    if choice == 'Word count': 
+    if menu_choice == 'Word count': 
         get_word_count(user_name,match_name,path)
-    elif choice == 'Most common words, combined':
+    elif menu_choice == 's':
         print('most common words individually between {} and {}'.format(user_name,match_name))
         indiv = 1
         print('---------in progress----------\n')
-    elif choice == 'Most common words, combined':
+    elif menu_choice == 'Most common words, individually':
         print('most common words between {} and {}'.format(user_name,match_name))
         indiv = 0
         get_common_words(path,indiv)
-    elif choice == 'All of the above':
+    elif menu_choice == 'All of the above':
         print('all of the above')
         indiv = 0
         get_common_words(path,indiv)
         get_word_count(user_name,match_name,path)
+    
 
     
