@@ -52,17 +52,17 @@ def print_matchlist_menu(matchlist):
     for i in range(0, len(matchlist)):
         print('    {}: {}'.format(i+1, matchlist[i]))
     print("    0: quit\n")
-    
-    
-def get_user_name():
+   
+def get_autofill(value):
     file = open(os.getcwd() + '\\messages\\autofill_information.json',"r")
     data = json.loads(file.read())
     file.close()   
     for d_info in data.values():
         for key in d_info:
             # TODO save email here for report option
-            if key == 'FULL_NAME':
+            if key == value:
                 return d_info[key][0]
+
 
 # finds key k in dict d, returns value of k
 def recursive_lookup(k, d):
@@ -231,8 +231,12 @@ while True:
         '''
 
 
-    user_name = get_user_name()
-    print('\nFacebook Data Parser\nWelcome {}!\n'.format(user_name))
+    user_name = get_autofill('FULL_NAME')
+    first_name = get_autofill('FIRST_NAME')
+    header = '╔════════════════════╗'
+    footer = '╚════════════════════╝'
+
+    print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}\n'.format(header,first_name,footer))
 
     # first menu
     first_menu_ans = prompt(first_menu)
