@@ -4,6 +4,7 @@ import glob
 import sys
 import datetime
 import os
+import time
 import plotly.express as px
 from pprint import pprint
 from collections import namedtuple, defaultdict
@@ -12,14 +13,14 @@ from PyInquirer import prompt, Separator
 def file_to_list(file_name):
     result = []
     file = open(file_name,"r")
+
     # get rid of common whitespace,  \n, etc
     file = [x.strip() for x in file]     
     for line in file:
         result.append(line)
     return result
 
-
-
+# search for provided input name in inbox
 def get_matchlist(guest_name):
     matchlist = []
     path = os.getcwd() + '\\messages\\inbox\\*{}*_*'.format(guest_name)
@@ -39,14 +40,6 @@ def get_matchlist(guest_name):
     matchlist = sorted(set(matchlist))
     matchlist.append('Quit')
     return matchlist
-
-def get_int_input():
-    while True:
-        choice = input("Please choose an option:  ")
-        if choice.isdigit():
-            return int(choice)
-        else: 
-            print("-- Error! -- Input must be an integer menu choice.")
 
 def print_matchlist_menu(matchlist):
     for i in range(0, len(matchlist)):
@@ -73,7 +66,8 @@ def recursive_lookup(k, d):
             return recursive_lookup(k, v)
     return None
 
-def get_word_count(user_name, match_name, path):
+def analyze_name(user_name, match_name, path):
+    timestamp = time.perf_counter()
     hour_count = defaultdict(int)
     month_count = defaultdict(int)
     day_count = defaultdict(int)
@@ -113,32 +107,43 @@ def get_word_count(user_name, match_name, path):
                     other_message_count += 1
 
      # Get the number of days the messages span over
+    
     num_days = (last_date - first_date).days
-    print('starting on',first_date.strftime("%A %B %d %Y"))
-   # print(first_date.strftime("%I:%M %p"))
-    #print('over {} days'.format(num_days))
+  #  print('From {} to {}'.format(first_date.strftime("%A %B %d %Y"),last_date.strftime("%A %B %d %Y")))
 
+  #  print('over {} days'.format(num_days))
+ 
+
+    print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
+    print("{}'s message count: {}".format(match_name,str(other_message_count )))
+
+    print('Processed data in {0:.2f} seconds.'.format(time.perf_counter() - timestamp))
+
+    return hour_count, month_count, day_count, day_name_count
+
+def show_hourly_graph(hour_count):
+    xdata_hourly = ['{0}:00'.format(i) for i in range(24)]
+    
+def show_monthly_graph(month_count):
     max_month = max(month_count, key=lambda key: month_count[key])
     max_month_count = month_count.get(max_month)
+    print('Highest month:\n{} with {} messsages'.format(max_month, max_month_count))
+
+        # monthly count bar graph 
+    month_vals = list(month_count.values())
+    month_dates = list(month_count.keys())
+    the_dict = {'dates':month_dates, 'y_vals':month_vals}
+    #fig = px.bar(the_dict, x='dates', y='y_vals')
+    #fig.show()
+
+def show_daily_graph(day_count):
+    xdata_day_name = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
     max_day = max(day_count, key=lambda key: day_count[key])
     max_day_count = day_count.get(max_day)
-    print('Highest month:\n{} with {} messsages'.format(max_month, max_month_count))
     print('Highest day:\n{} with {} messsages'.format(max_day, max_day_count))
-    month_vals = list(month_count.values())
-    month_dates = list(month_count.keys())
 
-    the_dict = {'dates':month_dates, 'y_vals':month_vals}
-    fig = px.bar(the_dict, x='dates', y='y_vals')
-    # fig = px.line(month_count)
-    fig.show()
-    
-   # print(pprint.pprint(month_count))
-    print(" \n{}'s message count: {}".format(user_name,str(my_message_count )))
-    print("{}'s message count: {}".format(match_name,str(other_message_count )))
-   # print(pp(month_count))
-
-def get_common_words(path,indiv):
+def get_common_words(path):
     dict_of_all_words = {}
     
     # TODO - wrap in try   
@@ -149,41 +154,23 @@ def get_common_words(path,indiv):
         with open(name) as json_file:
             data = json.load(json_file)
             for message in data["messages"]:
-                if indiv == 0:
-                    try: # avoid non-text messages
-                        list_of_words = message["content"].split(" ") 
-                            #itterate through the words in the message
-                        for word in list_of_words:
-                            if word.lower() not in common_word_list and word.isalpha():  
-                                # if the word in the message is already in the dict
-                                if word in dict_of_all_words: 
-                                    dict_of_all_words[word] += 1 
-                                else:
-                                    dict_of_all_words[word.lower()] = 1 #if the word does not exist, add it!            
-                    except:
-                        pass
-                else:
-                    print('calculated per person')
+                try: # avoid non-text messages
+                    list_of_words = message["content"].split(" ") 
+                        #itterate through the words in the message
+                    for word in list_of_words:
+                        if word.lower() not in common_word_list and word.isalpha():  
+                            # if the word in the message is already in the dict
+                            if word in dict_of_all_words: 
+                                dict_of_all_words[word] += 1 
+                            else:
+                                dict_of_all_words[word.lower()] = 1 #if the word does not exist, add it!            
+                except:
+                    pass
+        
 
     sorted_words_by_frequency = sorted(dict_of_all_words, key = dict_of_all_words.get, reverse = True)
     print(" \nMost common words sent: " + str(sorted_words_by_frequency[:50])) #print the top 10
-
-def get_name_input():
-    prompt = "Who would you like to search for:  "
-    while True:
-        #try:
-        orig_input = input(prompt).replace(" ","")
-        print('orig input',orig_input)
-        if orig_input == 0:
-            sys.exit()
-        elif orig_input.isalpha():
-            return str(orig_input).lower()
-            
-        else:
-            print("Input must be a string")
-        #except ValueError:
-         #   print("Input must be a string")
-          #  continue
+  #  pprint(sorted_words_by_frequency[:50])
 
 def is_input_valid(value):
     if value.isalpha() and value is not 0:
@@ -193,27 +180,51 @@ def is_input_valid(value):
 def search_filter(value):
     return value.replace(" ","").lower()
 
-first_menu = {
-    'type': 'list',
-    'name': 'menu_opt',
-    'message': 'Pick a menu option',
-    'choices': [
-        'Word count',
-        'Most common words, individually',
-        'Most common words, combined',
-        'All of the above',
-        'Quit'
-    ]
-}
-search_name_menu = {
-    'type': 'input',
-    'name': 'name_input',
-    'message':'Who would you like to search for?',
-    'validate': is_input_valid,
-    'filter': search_filter
-}
+menus = [
+    {
+        'type': 'checkbox',
+        'name': 'menu_opt',
+        'message': 'Pick a menu option(s)',
+        'choices': [
+            {
+                'name':  'Monthly word count',
+                'checked': True
+            },
+            {
+                'name': 'Daily word count'
+            },
+            {
+                'name': 'Hourly word count'
+            },
+            {
+                'name': 'Day of week word count'
+            },
+            {
+                'name': 'Most common words'
+            }
+            ]
+    },
+    {
+        'type': 'confirm',
+        'name': 'show_graphs',
+        'message': 'Show graph',
+        'default': False
+    },
+    {
+        'type': 'input',
+        'name': 'name_input',
+        'message':'Who would you like to search for?',
+        'validate': is_input_valid,
+        'filter': search_filter
+    }
 
+]
 
+user_name = get_autofill('FULL_NAME')
+first_name = get_autofill('FIRST_NAME')
+header = '╔════════════════════╗'
+footer = '╚════════════════════╝'
+print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}'.format(header,first_name,footer))
 
 while True:
         
@@ -230,26 +241,14 @@ while True:
         if name only matches 1 item, dont ask
         '''
 
+    print('\n')
+    ans = prompt(menus)
+    print('\tans',ans)
+    search_val = ans.get('name_input')
+    menu_choice = ans.get('menu_opt')
+    graph_bool = ans.get('show_graphs')
 
-    user_name = get_autofill('FULL_NAME')
-    first_name = get_autofill('FIRST_NAME')
-    header = '╔════════════════════╗'
-    footer = '╚════════════════════╝'
-
-    print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}\n'.format(header,first_name,footer))
-
-    # first menu
-    first_menu_ans = prompt(first_menu)
-    menu_choice = first_menu_ans.get('menu_opt')
-    if menu_choice == 'Quit':
-        print('Goodbye {}!'.format(user_name))
-        sys.exit()
-
-    # who to search for
-    search_name_ans = prompt(search_name_menu)
-    search_val = search_name_ans.get('name_input')
-
-    #  who menu
+  #  who menu
     choose_name_menu = {
         'type': 'list',
         'name': 'name_opt',
@@ -258,27 +257,25 @@ while True:
     }
     
     # get name choice
-    ans_arr = prompt(choose_name_menu)
-    match_name = ans_arr.get('name_opt')
-   
+    match_ans = prompt(choose_name_menu)
+    match_name = match_ans.get('name_opt')
 
     path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(match_name.replace(" ","").lower())
-
-    if menu_choice == 'Word count': 
-        get_word_count(user_name,match_name,path)
-    elif menu_choice == 's':
-        print('most common words individually between {} and {}'.format(user_name,match_name))
-        indiv = 1
-        print('---------in progress----------\n')
-    elif menu_choice == 'Most common words, individually':
-        print('most common words between {} and {}'.format(user_name,match_name))
-        indiv = 0
-        get_common_words(path,indiv)
-    elif menu_choice == 'All of the above':
-        print('all of the above')
-        indiv = 0
-        get_common_words(path,indiv)
-        get_word_count(user_name,match_name,path)
     
+    if 'Quit' in menu_choice:
+        print('Goodbye {}!'.format(user_name))
+        sys.exit()
 
-    
+    if 'Most common words' in menu_choice:
+        print('most common words  between {} and {}'.format(user_name,match_name))
+        get_common_words(path)
+    if 'Monthly word count' or 'Hourly word count' or 'Daily word count' in menu_choice: 
+        hour_count, month_count, day_count, day_name_count = analyze_name(user_name,match_name,path)
+
+        if graph_bool:
+            if 'Monthly word count' in menu_choice: show_monthly_graph(month_count)
+            if 'Hourly word count' in menu_choice: show_hourly_graph(hour_count)
+            if 'Daily word count' in menu_choice: show_daily_graph(day_count)
+        #if menu_choice == 'Day of week word count':
+
+
