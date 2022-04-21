@@ -1,4 +1,6 @@
 from __future__ import print_function, unicode_literals
+# from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+# from vaderSentiment import SentimentIntensityAnalyzer
 import json
 import glob
 import sys
@@ -77,6 +79,8 @@ def analyze_name(user_name, match_name, path):
     other_message_count = 0
     last_date = None
     first_date = None
+
+    #sentiment_analyzer = SentimentIntensityAnalyzer()
 
     for name in glob.glob(path):
         with open(name) as json_file:
@@ -201,6 +205,9 @@ menus = [
             },
             {
                 'name': 'Most common words'
+            },
+            {
+                'name': 'Quit'
             }
             ]
     },
@@ -220,6 +227,7 @@ menus = [
 
 ]
 
+# only do get autofill if file isn't there already/ unreadable
 user_name = get_autofill('FULL_NAME')
 first_name = get_autofill('FIRST_NAME')
 header = '╔════════════════════╗'
@@ -230,8 +238,9 @@ while True:
         
     TODO = ''' 
 
-        finish individual top words
-        save other party name from message thread
+         vaderSentiment install and basic setup
+         option for it? or where in the menu
+
         message[type] filter + counter
         from mm/dd/yy to mm/dd/yy
         create setup.py to allow pip install w/o repo
@@ -239,11 +248,13 @@ while True:
         add option for how many top words to show
 
         if name only matches 1 item, dont ask
+
+        if name searched for doesnt find match - try again or quit
         '''
 
     print('\n')
     ans = prompt(menus)
-    print('\tans',ans)
+   # print('\tans',ans)
     search_val = ans.get('name_input')
     menu_choice = ans.get('menu_opt')
     graph_bool = ans.get('show_graphs')
@@ -269,6 +280,7 @@ while True:
     if 'Most common words' in menu_choice:
         print('most common words  between {} and {}'.format(user_name,match_name))
         get_common_words(path)
+
     if 'Monthly word count' or 'Hourly word count' or 'Daily word count' in menu_choice: 
         hour_count, month_count, day_count, day_name_count = analyze_name(user_name,match_name,path)
 
