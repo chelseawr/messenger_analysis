@@ -1,16 +1,18 @@
 from __future__ import print_function, unicode_literals
+from calendar import month
 # from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 # from vaderSentiment import SentimentIntensityAnalyzer
 import json
 import glob
 import sys
-import datetime
+from datetime import date, datetime
 import os
 import time
 import plotly.express as px
 from pprint import pprint
 from collections import namedtuple, defaultdict
 from PyInquirer import prompt, Separator
+import pandas as pd
 
 def file_to_list(file_name):
     result = []
@@ -86,7 +88,7 @@ def analyze_name(user_name, match_name, path):
         with open(name) as json_file:
             data = json.load(json_file)
             for message in data["messages"]:
-                date = datetime.datetime.fromtimestamp(message['timestamp_ms']/1000.0)
+                date = datetime.fromtimestamp(message['timestamp_ms']/1000.0)
                 month = date.strftime('%Y-%m')
                 day = date.strftime('%Y-%m-%d')
                 day_name = date.strftime('%A')
@@ -129,16 +131,38 @@ def show_hourly_graph(hour_count):
     xdata_hourly = ['{0}:00'.format(i) for i in range(24)]
     
 def show_monthly_graph(month_count):
-    max_month = max(month_count, key=lambda key: month_count[key])
-    max_month_count = month_count.get(max_month)
-    print('Highest month:\n{} with {} messsages'.format(max_month, max_month_count))
 
-        # monthly count bar graph 
+    # get list all months from first to present
+    # match vals from there
+    here = pd.date_range('2014-10-10',date.today(), 
+              freq='MS').strftime("%Y-%m").tolist()
+
+    # Highest month
+    # max_month = max(month_count, key=lambda key: month_count[key])
+    # max_month_count = month_count.get(max_month)
+    # print('Highest month:\n{} with {} messsages'.format(max_month, max_month_count))
+ #   first = month_count
+
+    df = pd.DataFrame.from_dict(month_count, orient='index', columns=['count'])
+    first = df.iloc[0,0]
+    
+    # Format data for graph
     month_vals = list(month_count.values())
     month_dates = list(month_count.keys())
-    the_dict = {'dates':month_dates, 'y_vals':month_vals}
-    #fig = px.bar(the_dict, x='dates', y='y_vals')
-    #fig.show()
+    
+    # TODO reformat date list
+    print(df.head())
+    the_dict = {'Month':month_dates, 'Number of Messages':month_vals}
+
+    print()
+    # rename both axis
+    fig = px.bar(the_dict, x='Month', y='Number of Messages',
+            text_auto='.2s',
+            title="Messages between {} and {} by month".format(person_a,person_b))
+    fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+    fig.show()
+
+
 
 def show_daily_graph(day_count):
     xdata_day_name = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -228,11 +252,11 @@ menus = [
 ]
 
 # only do get autofill if file isn't there already/ unreadable
-user_name = get_autofill('FULL_NAME')
-first_name = get_autofill('FIRST_NAME')
+person_a = get_autofill('FULL_NAME')
+person_a_fname = get_autofill('FIRST_NAME')
 header = '╔════════════════════╗'
 footer = '╚════════════════════╝'
-print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}'.format(header,first_name,footer))
+print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}'.format(header,person_a_fname,footer))
 
 while True:
         
@@ -259,7 +283,7 @@ while True:
     menu_choice = ans.get('menu_opt')
     graph_bool = ans.get('show_graphs')
 
-  #  who menu
+  #  Searches inbox for list of recipients 
     choose_name_menu = {
         'type': 'list',
         'name': 'name_opt',
@@ -267,22 +291,23 @@ while True:
         'choices': get_matchlist(search_val)
     }
     
-    # get name choice
+    # Gets choice for person_b
     match_ans = prompt(choose_name_menu)
-    match_name = match_ans.get('name_opt')
+    person_b = match_ans.get('name_opt')
 
-    path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(match_name.replace(" ","").lower())
+    path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(person_b.replace(" ","").lower())
     
+    # Process menu_choice
     if 'Quit' in menu_choice:
-        print('Goodbye {}!'.format(user_name))
+        print('Goodbye {}!'.format(person_a))
         sys.exit()
 
     if 'Most common words' in menu_choice:
-        print('most common words  between {} and {}'.format(user_name,match_name))
+        print('most common words  between {} and {}'.format(person_a,person_b))
         get_common_words(path)
 
-    if 'Monthly word count' or 'Hourly word count' or 'Daily word count' in menu_choice: 
-        hour_count, month_count, day_count, day_name_count = analyze_name(user_name,match_name,path)
+    if 'word count' in menu_choice[0]: 
+        hour_count, month_count, day_count, day_name_count = analyze_name(person_a,person_b,path)
 
         if graph_bool:
             if 'Monthly word count' in menu_choice: show_monthly_graph(month_count)
