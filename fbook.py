@@ -130,36 +130,41 @@ def analyze_name(user_name, match_name, path):
 def show_hourly_graph(hour_count):
     xdata_hourly = ['{0}:00'.format(i) for i in range(24)]
     
+def set_zeroes(month_count):
+    # Format data for graph
+    month_dates = list(month_count.keys())
+
+    all_months = pd.date_range(min(month_dates), date.today(), 
+              freq='MS').strftime("%Y-%m").tolist()
+
+    # sets any empty/missing months to 0 message count
+    for month in all_months:
+        if month not in month_dates:
+            month_count[month] = 0
+
+    return month_count
+
 def show_monthly_graph(month_count):
 
     # get list all months from first to present
     # match vals from there
-    here = pd.date_range('2014-10-10',date.today(), 
-              freq='MS').strftime("%Y-%m").tolist()
-
+  
     # Highest month
     # max_month = max(month_count, key=lambda key: month_count[key])
     # max_month_count = month_count.get(max_month)
     # print('Highest month:\n{} with {} messsages'.format(max_month, max_month_count))
- #   first = month_count
+    # month with highest value
+    #  print(df.idxmax())
+    # value of highest month
+    #  print(df.max())
+
+    month_count = set_zeroes(month_count)
 
     df = pd.DataFrame.from_dict(month_count, orient='index', columns=['count'])
-    first = df.iloc[0,0]
-    
-    # Format data for graph
-    month_vals = list(month_count.values())
-    month_dates = list(month_count.keys())
-    
-    # TODO reformat date list
-    print(df.head())
-    the_dict = {'Month':month_dates, 'Number of Messages':month_vals}
-
-    print()
+ 
     # rename both axis
-    fig = px.bar(the_dict, x='Month', y='Number of Messages',
-            text_auto='.2s',
-            title="Messages between {} and {} by month".format(person_a,person_b))
-    fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+    fig = px.bar(df)
+   # fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
     fig.show()
 
 
