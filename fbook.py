@@ -130,19 +130,21 @@ def analyze_name(user_name, match_name, path):
 def show_hourly_graph(hour_count):
     xdata_hourly = ['{0}:00'.format(i) for i in range(24)]
     
-def set_zeroes(month_count):
+def set_zeroes(obj, format):
     # Format data for graph
-    month_dates = list(month_count.keys())
+    objs_dates = list(obj.keys())
 
-    all_months = pd.date_range(min(month_dates), date.today(), 
-              freq='MS').strftime("%Y-%m").tolist()
+    # get range of months from first date to today
+    # future - from date friend added?
+    range = pd.date_range(min(objs_dates), date.today(), 
+              freq='MS').strftime(format).tolist()
 
     # sets any empty/missing months to 0 message count
-    for month in all_months:
-        if month not in month_dates:
-            month_count[month] = 0
+    for x in range:
+        if x not in objs_dates:
+            obj[x] = 0
 
-    return month_count
+    return obj
 
 def show_monthly_graph(month_count):
 
@@ -158,7 +160,7 @@ def show_monthly_graph(month_count):
     # value of highest month
     #  print(df.max())
 
-    month_count = set_zeroes(month_count)
+    month_count = set_zeroes(month_count, '%Y-%m')
 
     df = pd.DataFrame.from_dict(month_count, orient='index', columns=['count'])
  
@@ -171,7 +173,16 @@ def show_monthly_graph(month_count):
 
 def show_daily_graph(day_count):
     xdata_day_name = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    
 
+    day_count = set_zeroes(day_count, "%Y-%m-%d")
+    
+    df = pd.DataFrame.from_dict(day_count, orient='index', columns=['count'])
+
+    fig = px.bar(df)
+    fig.show()
+
+    print(df.head())
     max_day = max(day_count, key=lambda key: day_count[key])
     max_day_count = day_count.get(max_day)
     print('Highest day:\n{} with {} messsages'.format(max_day, max_day_count))
@@ -270,6 +281,8 @@ while True:
          vaderSentiment install and basic setup
          option for it? or where in the menu
 
+        change checkbox menu to radio btn 
+        
         message[type] filter + counter
         from mm/dd/yy to mm/dd/yy
         create setup.py to allow pip install w/o repo
