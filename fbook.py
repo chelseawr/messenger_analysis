@@ -1,5 +1,4 @@
 from __future__ import print_function, unicode_literals
-from calendar import month
 # from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 # from vaderSentiment import SentimentIntensityAnalyzer
 import json
@@ -224,15 +223,28 @@ def is_input_valid(value):
 def search_filter(value):
     return value.replace(" ","").lower()
 
-menus = [
-    {
-        'type': 'checkbox',
+graph_menu = {
+        'type': 'confirm',
+        'name': 'show_graphs',
+        'message': 'Show graph',
+        'default': False
+    }
+
+name_menu = {
+        'type': 'input',
+        'name': 'name_input',
+        'message':'Who would you like to search for?',
+        'validate': is_input_valid,
+        'filter': search_filter
+    }
+
+entry_menu =  {
+        'type': 'list',
         'name': 'menu_opt',
         'message': 'Pick a menu option(s)',
         'choices': [
             {
                 'name':  'Monthly word count',
-                'checked': True
             },
             {
                 'name': 'Daily word count'
@@ -250,87 +262,78 @@ menus = [
                 'name': 'Quit'
             }
             ]
-    },
-    {
-        'type': 'confirm',
-        'name': 'show_graphs',
-        'message': 'Show graph',
-        'default': False
-    },
-    {
-        'type': 'input',
-        'name': 'name_input',
-        'message':'Who would you like to search for?',
-        'validate': is_input_valid,
-        'filter': search_filter
     }
-
-]
-
 # only do get autofill if file isn't there already/ unreadable
+
+# Don't open file twice
 person_a = get_autofill('FULL_NAME')
 person_a_fname = get_autofill('FIRST_NAME')
 header = '╔════════════════════╗'
 footer = '╚════════════════════╝'
 print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}'.format(header,person_a_fname,footer))
 
-while True:
-        
-    TODO = ''' 
-
-         vaderSentiment install and basic setup
-         option for it? or where in the menu
-
-        change checkbox menu to radio btn 
-        
-        message[type] filter + counter
-        from mm/dd/yy to mm/dd/yy
-        create setup.py to allow pip install w/o repo
-        add option for 1:* or 1:1 chats
-        add option for how many top words to show
-
-        if name only matches 1 item, dont ask
-
-        if name searched for doesnt find match - try again or quit
-        '''
-
-    print('\n')
-    ans = prompt(menus)
-   # print('\tans',ans)
-    search_val = ans.get('name_input')
-    menu_choice = ans.get('menu_opt')
-    graph_bool = ans.get('show_graphs')
-
-  #  Searches inbox for list of recipients 
-    choose_name_menu = {
-        'type': 'list',
-        'name': 'name_opt',
-        'message': 'Choose a name:',
-        'choices': get_matchlist(search_val)
-    }
     
-    # Gets choice for person_b
-    match_ans = prompt(choose_name_menu)
-    person_b = match_ans.get('name_opt')
+TODO = ''' 
 
-    path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(person_b.replace(" ","").lower())
+        vaderSentiment install and basic setup
+        option for it? or where in the menu
+
+    change checkbox menu to radio btn 
     
-    # Process menu_choice
-    if 'Quit' in menu_choice:
-        print('Goodbye {}!'.format(person_a))
-        sys.exit()
+    message[type] filter + counter
+    from mm/dd/yy to mm/dd/yy
+    create setup.py to allow pip install w/o repo
+    add option for 1:* or 1:1 chats
+    add option for how many top words to show
 
-    if 'Most common words' in menu_choice:
-        print('most common words  between {} and {}'.format(person_a,person_b))
-        get_common_words(path)
+    if name only matches 1 item, dont ask
 
-    if 'word count' in menu_choice[0]: 
-        hour_count, month_count, day_count, day_name_count = analyze_name(person_a,person_b,path)
+    if name searched for doesnt find match - try again or quit
+    '''
 
-        if graph_bool:
-            if 'Monthly word count' in menu_choice: show_monthly_graph(month_count)
-            if 'Hourly word count' in menu_choice: show_hourly_graph(hour_count)
-            if 'Daily word count' in menu_choice: show_daily_graph(day_count)
-        #if menu_choice == 'Day of week word count':
+print('\n')
+ans = prompt(entry_menu)
+menu_choice = ans.get('menu_opt')
+
+# Process menu_choice
+if 'Quit' in menu_choice:
+    print('Goodbye {}!'.format(person_a))
+    sys.exit()
+
+# Get person B
+
+#  Searches inbox for list of recipients 
+match_ans = prompt(name_menu)
+print()
+choose_name_menu = {
+    'type': 'list',
+    'name': 'name_opt',
+    'message': 'Choose a name:',
+    'choices': get_matchlist(match_ans.get('name_input'))
+}
+
+person_b = match_ans.get('name_opt')
+
+path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(person_b.replace(" ","").lower())
+
+if 'Most common words' in menu_choice:
+    print('most common words  between {} and {}'.format(person_a, person_b))
+    get_common_words(path)
+
+if 'word count' in menu_choice: 
+    hour_count, month_count, day_count, day_name_count = analyze_name(person_a,person_b,path)
+
+    ans = prompt(graph_menu)
+    if ans.get('show_graphs'):
+        if 'Monthly word count' in menu_choice: show_monthly_graph(month_count)
+        if 'Hourly word count' in menu_choice: show_hourly_graph(hour_count)
+        if 'Daily word count' in menu_choice: show_daily_graph(day_count)
+    #if menu_choice == 'Day of week word count':
+
+
+#graph_bool = ans.get('show_graphs')
+#search_val = ans.get('name_input')
+
+
 
 
