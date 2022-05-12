@@ -12,6 +12,7 @@ from pprint import pprint
 from collections import namedtuple, defaultdict
 from PyInquirer import prompt, Separator
 import pandas as pd
+import menus
 
 def file_to_list(file_name):
     result = []
@@ -168,8 +169,6 @@ def show_monthly_graph(month_count):
    # fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
     fig.show()
 
-
-
 def show_daily_graph(day_count):
     xdata_day_name = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     
@@ -223,57 +222,31 @@ def is_input_valid(value):
 def search_filter(value):
     return value.replace(" ","").lower()
 
-graph_menu = {
-        'type': 'confirm',
-        'name': 'show_graphs',
-        'message': 'Show graph',
-        'default': False
-    }
 
-name_menu = {
-        'type': 'input',
-        'name': 'name_input',
-        'message':'Who would you like to search for?',
-        'validate': is_input_valid,
-        'filter': search_filter
-    }
-
-entry_menu =  {
+def get_person_b(name_input):
+        
+    # Build menu with recepients that match name_input
+    choose_name_menu = {
         'type': 'list',
-        'name': 'menu_opt',
-        'message': 'Pick a menu option(s)',
-        'choices': [
-            {
-                'name':  'Monthly word count',
-            },
-            {
-                'name': 'Daily word count'
-            },
-            {
-                'name': 'Hourly word count'
-            },
-            {
-                'name': 'Day of week word count'
-            },
-            {
-                'name': 'Most common words'
-            },
-            {
-                'name': 'Quit'
-            }
-            ]
+        'name': 'name_opt',
+        'message': 'Choose a name:',
+        'choices': get_matchlist(name_input)
     }
-# only do get autofill if file isn't there already/ unreadable
 
-# Don't open file twice
+    # Choose a name from that list
+    choose_name_ans = prompt(choose_name_menu)
+    return choose_name_ans.get('name_opt')
+
+
+# Main
 person_a = get_autofill('FULL_NAME')
 person_a_fname = get_autofill('FIRST_NAME')
 header = '╔════════════════════╗'
 footer = '╚════════════════════╝'
-print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}'.format(header,person_a_fname,footer))
+print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}\n'.format(header,person_a_fname,footer))
 
     
-TODO = ''' 
+TODO = ''' only do get autofill if file isn't there already/ unreadable  - Don't open file twice
 
         vaderSentiment install and basic setup
         option for it? or where in the menu
@@ -291,9 +264,8 @@ TODO = '''
     if name searched for doesnt find match - try again or quit
     '''
 
-print('\n')
-ans = prompt(entry_menu)
-menu_choice = ans.get('menu_opt')
+menu_ans = prompt(menus.entry_menu)
+menu_choice = menu_ans.get('menu_opt')
 
 # Process menu_choice
 if 'Quit' in menu_choice:
@@ -303,19 +275,14 @@ if 'Quit' in menu_choice:
 # Get person B
 
 #  Searches inbox for list of recipients 
-match_ans = prompt(name_menu)
-print()
-choose_name_menu = {
-    'type': 'list',
-    'name': 'name_opt',
-    'message': 'Choose a name:',
-    'choices': get_matchlist(match_ans.get('name_input'))
-}
+search_name_ans = prompt(menus.name_menu)
 
-person_b = match_ans.get('name_opt')
+person_b = get_person_b(search_name_ans.get('name_input'))
 
 path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(person_b.replace(" ","").lower())
 
+
+# Remaining menu options
 if 'Most common words' in menu_choice:
     print('most common words  between {} and {}'.format(person_a, person_b))
     get_common_words(path)
@@ -323,8 +290,8 @@ if 'Most common words' in menu_choice:
 if 'word count' in menu_choice: 
     hour_count, month_count, day_count, day_name_count = analyze_name(person_a,person_b,path)
 
-    ans = prompt(graph_menu)
-    if ans.get('show_graphs'):
+    menu_ans = prompt(menus.graph_menu)
+    if menu_ans.get('show_graphs'):
         if 'Monthly word count' in menu_choice: show_monthly_graph(month_count)
         if 'Hourly word count' in menu_choice: show_hourly_graph(hour_count)
         if 'Daily word count' in menu_choice: show_daily_graph(day_count)
@@ -333,7 +300,3 @@ if 'word count' in menu_choice:
 
 #graph_bool = ans.get('show_graphs')
 #search_val = ans.get('name_input')
-
-
-
-
