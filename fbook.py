@@ -162,11 +162,20 @@ def show_monthly_graph(month_count):
 
     month_count = set_zeroes(month_count, '%Y-%m')
 
-    df = pd.DataFrame.from_dict(month_count, orient='index', columns=['count'])
- 
-    # rename both axis
-    fig = px.bar(df)
+    df = pd.DataFrame.from_dict(month_count, orient='index')
+    
+    df = df.rename(columns={0: "count"})
+    df = df.rename_axis("month", axis="columns")
+    pprint(df.head())
+    fig = px.bar(df,  
+                labels={
+                    "index": "Month",
+                    "value": "count"
+                 },
+                title=f"Monthly message count between {person_a} and {person_b}")
+    
    # fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
+
     fig.show()
 
 def show_daily_graph(day_count):
@@ -240,13 +249,12 @@ def get_person_b(name_input):
 
 # Main
 person_a = get_autofill('FULL_NAME')
-person_a_fname = get_autofill('FIRST_NAME')
 header = '╔════════════════════╗'
 footer = '╚════════════════════╝'
-print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}\n'.format(header,person_a_fname,footer))
+print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}\n'.format(header, person_a, footer))
 
     
-TODO = ''' only do get autofill if file isn't there already/ unreadable  - Don't open file twice
+TODO = ''' 
 
         vaderSentiment install and basic setup
         option for it? or where in the menu
@@ -266,6 +274,7 @@ TODO = ''' only do get autofill if file isn't there already/ unreadable  - Don't
 
 menu_ans = prompt(menus.entry_menu)
 menu_choice = menu_ans.get('menu_opt')
+# if no match to input?
 
 # Process menu_choice
 if 'Quit' in menu_choice:
@@ -279,7 +288,7 @@ search_name_ans = prompt(menus.name_menu)
 
 person_b = get_person_b(search_name_ans.get('name_input'))
 
-path = os.getcwd() + '\\messages\\inbox\\{}_*\\message_*'.format(person_b.replace(" ","").lower())
+path = f'{os.getcwd()}\\messages\\inbox\\{person_b.replace(" ","").lower()}_*\\message_*'
 
 
 # Remaining menu options
@@ -288,7 +297,7 @@ if 'Most common words' in menu_choice:
     get_common_words(path)
 
 if 'word count' in menu_choice: 
-    hour_count, month_count, day_count, day_name_count = analyze_name(person_a,person_b,path)
+    hour_count, month_count, day_count, day_name_count = analyze_name(person_a ,person_b, path)
 
     menu_ans = prompt(menus.graph_menu)
     if menu_ans.get('show_graphs'):
