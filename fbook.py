@@ -163,14 +163,11 @@ def show_monthly_graph(month_count):
     month_count = set_zeroes(month_count, '%Y-%m')
 
     df = pd.DataFrame.from_dict(month_count, orient='index')
-    
-    df = df.rename(columns={0: "count"})
-    df = df.rename_axis("month", axis="columns")
-    pprint(df.head())
+    # TODO set zeros/fill with pandas instead
     fig = px.bar(df,  
                 labels={
                     "index": "Month",
-                    "value": "count"
+                    "value": "Message Count"
                  },
                 title=f"Monthly message count between {person_a} and {person_b}")
     
@@ -184,12 +181,16 @@ def show_daily_graph(day_count):
 
     day_count = set_zeroes(day_count, "%Y-%m-%d")
     
-    df = pd.DataFrame.from_dict(day_count, orient='index', columns=['count'])
-
-    fig = px.bar(df)
+    df = pd.DataFrame.from_dict(day_count, orient='index')
+    fig = px.bar(df,  
+                labels={
+                    "index": "Day",
+                    "value": "Message Count"
+                 },
+                title=f"Daily message count between {person_a} and {person_b}")
     fig.show()
 
-    print(df.head())
+    pprint(df.head())
     max_day = max(day_count, key=lambda key: day_count[key])
     max_day_count = day_count.get(max_day)
     print('Highest day:\n{} with {} messsages'.format(max_day, max_day_count))
