@@ -7,6 +7,9 @@ import sys
 from datetime import date, datetime
 import os
 import time
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
 import plotly.express as px
 from pprint import pprint
 from collections import namedtuple, defaultdict
@@ -170,10 +173,10 @@ def show_monthly_graph(month_count):
                     "value": "Message Count"
                  },
                 title=f"Monthly message count between {person_a} and {person_b}")
-    
+    dash_testr(fig)
    # fig.update_traces(textfont_size=12, textangle=0, textposition="outside", cliponaxis=False)
 
-    fig.show()
+   # fig.show()
 
 def show_daily_graph(day_count):
     xdata_day_name = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -188,7 +191,8 @@ def show_daily_graph(day_count):
                     "value": "Message Count"
                  },
                 title=f"Daily message count between {person_a} and {person_b}")
-    fig.show()
+    #fig.show()
+    dash_testr(fig)
 
     pprint(df.head())
     max_day = max(day_count, key=lambda key: day_count[key])
@@ -232,7 +236,6 @@ def is_input_valid(value):
 def search_filter(value):
     return value.replace(" ","").lower()
 
-
 def get_person_b(name_input):
         
     # Build menu with recepients that match name_input
@@ -247,66 +250,84 @@ def get_person_b(name_input):
     choose_name_ans = prompt(choose_name_menu)
     return choose_name_ans.get('name_opt')
 
+def dash_testr(fig):
+        
+    app.layout = html.Div(children=[
+        html.H1(children='Hello Dash'),
 
-# Main
-person_a = get_autofill('FULL_NAME')
-header = '╔════════════════════╗'
-footer = '╚════════════════════╝'
-print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}\n'.format(header, person_a, footer))
+        html.Div(children='''
+            Dash: A web application framework for your data.
+        '''),
 
-    
-TODO = ''' 
+        dcc.Graph(
+            id='example-graph',
+            figure=fig
+        )
+    ])
+    app.run_server(debug=True)
 
-        vaderSentiment install and basic setup
-        option for it? or where in the menu
+if __name__ == '__main__':
 
-    change checkbox menu to radio btn 
-    
-    message[type] filter + counter
-    from mm/dd/yy to mm/dd/yy
-    create setup.py to allow pip install w/o repo
-    add option for 1:* or 1:1 chats
-    add option for how many top words to show
+    app = dash.Dash(__name__)
+   
+    person_a = get_autofill('FULL_NAME')
+    header = '╔════════════════════╗'
+    footer = '╚════════════════════╝'
+    print('\n\t{}\n\t Facebook Data Parser\n\t Welcome {}!\n\t{}\n'.format(header, person_a, footer))
 
-    if name only matches 1 item, dont ask
+        
+    TODO = ''' 
 
-    if name searched for doesnt find match - try again or quit
-    '''
+            vaderSentiment install and basic setup
+            option for it? or where in the menu
 
-menu_ans = prompt(menus.entry_menu)
-menu_choice = menu_ans.get('menu_opt')
-# if no match to input?
+        change checkbox menu to radio btn 
+        
+        message[type] filter + counter
+        from mm/dd/yy to mm/dd/yy
+        create setup.py to allow pip install w/o repo
+        add option for 1:* or 1:1 chats
+        add option for how many top words to show
 
-# Process menu_choice
-if 'Quit' in menu_choice:
-    print('Goodbye {}!'.format(person_a))
-    sys.exit()
+        if name only matches 1 item, dont ask
 
-# Get person B
+        if name searched for doesnt find match - try again or quit
+        '''
 
-#  Searches inbox for list of recipients 
-search_name_ans = prompt(menus.name_menu)
+    menu_ans = prompt(menus.entry_menu)
+    menu_choice = menu_ans.get('menu_opt')
+    # if no match to input?
 
-person_b = get_person_b(search_name_ans.get('name_input'))
+    # Process menu_choice
+    if 'Quit' in menu_choice:
+        print('Goodbye {}!'.format(person_a))
+        sys.exit()
 
-path = f'{os.getcwd()}\\messages\\inbox\\{person_b.replace(" ","").lower()}_*\\message_*'
+    # Get person B
 
+    #  Searches inbox for list of recipients 
+    search_name_ans = prompt(menus.name_menu)
 
-# Remaining menu options
-if 'Most common words' in menu_choice:
-    print('most common words  between {} and {}'.format(person_a, person_b))
-    get_common_words(path)
+    person_b = get_person_b(search_name_ans.get('name_input'))
 
-if 'word count' in menu_choice: 
-    hour_count, month_count, day_count, day_name_count = analyze_name(person_a ,person_b, path)
-
-    menu_ans = prompt(menus.graph_menu)
-    if menu_ans.get('show_graphs'):
-        if 'Monthly word count' in menu_choice: show_monthly_graph(month_count)
-        if 'Hourly word count' in menu_choice: show_hourly_graph(hour_count)
-        if 'Daily word count' in menu_choice: show_daily_graph(day_count)
-    #if menu_choice == 'Day of week word count':
+    path = f'{os.getcwd()}\\messages\\inbox\\{person_b.replace(" ","").lower()}_*\\message_*'
 
 
-#graph_bool = ans.get('show_graphs')
-#search_val = ans.get('name_input')
+    # Remaining menu options
+    if 'Most common words' in menu_choice:
+        print('most common words  between {} and {}'.format(person_a, person_b))
+        get_common_words(path)
+
+    if 'word count' in menu_choice: 
+        hour_count, month_count, day_count, day_name_count = analyze_name(person_a ,person_b, path)
+
+        menu_ans = prompt(menus.graph_menu)
+        if menu_ans.get('show_graphs'):
+            if 'Monthly word count' in menu_choice: show_monthly_graph(month_count)
+            if 'Hourly word count' in menu_choice: show_hourly_graph(hour_count)
+            if 'Daily word count' in menu_choice: show_daily_graph(day_count)
+        #if menu_choice == 'Day of week word count':
+
+
+    #graph_bool = ans.get('show_graphs')
+    #search_val = ans.get('name_input')
