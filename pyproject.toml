@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "messenger-analysis"
+version = "0.2.0"
+description = "Tools for analyzing Facebook Messenger JSON exports."
+authors = [{ name = "Chelsea" }]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=2.1",
+    "plotly>=5.20",
+    "dash>=2.14",
+]
+
+[project.scripts]
+messenger-analysis = "messenger_analysis.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

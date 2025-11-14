@@ -1,2 +1,5 @@
 /messages
 .vscode
+*.egg-info/
+__pycache__
+.venv
