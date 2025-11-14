@@ -1,0 +1,4 @@
+dash>=2
+pandas>=2
+plotly>=5
+PyInquirer>=1.0
