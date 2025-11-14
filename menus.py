@@ -1,25 +1,23 @@
-from __future__ import annotations
-
-from typing import Any, Dict
 
 
-def is_input_valid(value: str) -> bool:
-    # keep behavior close to original, but fix "is not 0" bug
+def is_input_valid(value):
+    """Basic validation for name input."""
     return bool(value) and value.replace(" ", "").isalpha()
 
 
-def search_filter(value: str) -> str:
+def search_filter(value):
+    """Normalize name for searching."""
     return value.replace(" ", "").lower()
 
 
-graph_menu: Dict[str, Any] = {
+graph_menu = {
     "type": "confirm",
     "name": "show_graphs",
     "message": "Show graph?",
     "default": False,
 }
 
-name_menu: Dict[str, Any] = {
+name_menu = {
     "type": "input",
     "name": "name_input",
     "message": "Who would you like to search for?",
@@ -27,7 +25,7 @@ name_menu: Dict[str, Any] = {
     "filter": search_filter,
 }
 
-entry_menu: Dict[str, Any] = {
+entry_menu = {
     "type": "list",
     "name": "menu_opt",
     "message": "Pick a menu option",

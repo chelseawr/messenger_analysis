@@ -1,19 +1,20 @@
-from __future__ import annotations
-
 import json
 import sys
 import glob
 import time
 import os
 from collections import defaultdict
-from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List, Optional
 
 import pandas as pd
-from dash import Dash, dcc, html  # modern Dash import style
 import plotly.express as px
+
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
+
 from PyInquirer import prompt  # type: ignore
 
 import menus
@@ -25,10 +26,12 @@ INBOX_DIR = MESSAGES_DIR / "inbox"
 AUTOFILL_PATH = MESSAGES_DIR / "autofill_information.json"
 
 
-def file_to_list(file_name: str) -> list[str]:
+def file_to_list(file_name):
     """Read lines from a text file, stripping whitespace."""
     path = BASE_DIR / file_name
-    result: list[str] = []
+    result = []
+    if not path.exists():
+        return result
     with path.open("r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
@@ -37,7 +40,7 @@ def file_to_list(file_name: str) -> list[str]:
     return result
 
 
-def recursive_lookup(key: str, data: dict) -> str | None:
+def recursive_lookup(key, data):
     """Find the first value for key in a nested dict structure."""
     if key in data:
         return data[key]
@@ -49,17 +52,16 @@ def recursive_lookup(key: str, data: dict) -> str | None:
     return None
 
 
-def get_matchlist(guest_name: str) -> list[str]:
+def get_matchlist(guest_name):
     """
     Find all conversation folders in messages/inbox whose folder name
     contains the normalized guest_name.
     """
     normalized = guest_name.replace(" ", "").lower()
-    pattern = str(INBOX_DIR / f"*{normalized}_*")
-    matchlist: list[str] = []
+    pattern = str(INBOX_DIR / ("*%s_*" % normalized))
+    matchlist = []
 
     for folder in glob.glob(pattern):
-        # Each conversation folder should contain message_1.json
         msg_path = os.path.join(folder, "message_1.json")
         if not os.path.exists(msg_path):
             continue
@@ -68,8 +70,8 @@ def get_matchlist(guest_name: str) -> list[str]:
         match_name = recursive_lookup("title", data)
         if not match_name:
             continue
-        # crude heuristic to avoid huge group chats
-        if len(match_name) <= 20:
+        # crude heuristic to avoid huge noisy chats
+        if len(match_name) <= 80:
             matchlist.append(match_name)
 
     matchlist = sorted(set(matchlist))
@@ -77,7 +79,7 @@ def get_matchlist(guest_name: str) -> list[str]:
     return matchlist
 
 
-def get_autofill(value: str) -> str | None:
+def get_autofill(value):
     """
     Look up a value (e.g. FULL_NAME) from messages/autofill_information.json.
     Returns the first match or None.
@@ -91,39 +93,28 @@ def get_autofill(value: str) -> str | None:
         if not isinstance(d_info, dict):
             continue
         if value in d_info and d_info[value]:
-            # original code took the first element
-            return d_info[value][0]
+            entry = d_info[value]
+            if isinstance(entry, list) and entry:
+                return entry[0]
+            if isinstance(entry, str) and entry:
+                return entry
     return None
 
 
-@dataclass
-class MessageStats:
-    hour_count: Dict[int, int]
-    month_count: Dict[str, int]
-    day_count: Dict[str, int]
-    day_name_count: Dict[str, int]
-    my_message_count: int
-    other_message_count: int
-    first_date: datetime | None
-    last_date: datetime | None
-
-
-def analyze_name(
-    user_name: str, match_name: str, path_pattern: str
-) -> MessageStats:
+def analyze_name(user_name, match_name, path_pattern):
     """
     Scan all message_*.json files that match path_pattern and accumulate stats.
     """
     t0 = time.perf_counter()
-    hour_count: Dict[int, int] = defaultdict(int)
-    month_count: Dict[str, int] = defaultdict(int)
-    day_count: Dict[str, int] = defaultdict(int)
-    day_name_count: Dict[str, int] = defaultdict(int)
+    hour_count = defaultdict(int)    # type: Dict[int, int]
+    month_count = defaultdict(int)   # type: Dict[str, int]
+    day_count = defaultdict(int)     # type: Dict[str, int]
+    day_name_count = defaultdict(int)  # type: Dict[str, int]
 
     my_message_count = 0
     other_message_count = 0
-    first_date: datetime | None = None
-    last_date: datetime | None = None
+    first_date = None  # type: Optional[datetime]
+    last_date = None   # type: Optional[datetime]
 
     for path in glob.glob(path_pattern):
         with open(path, encoding="utf-8") as json_file:
@@ -160,50 +151,51 @@ def analyze_name(
     else:
         num_days = 0
 
-    print(f"\n{user_name}'s message count: {my_message_count}")
-    print(f"{match_name}'s message count: {other_message_count}")
+    print("\n%s's message count: %d" % (user_name, my_message_count))
+    print("%s's message count: %d" % (match_name, other_message_count))
     if num_days:
         print(
-            f"Spanning {num_days} days "
-            f"({first_date:%A %B %d %Y} – {last_date:%A %B %d %Y})"
+            "Spanning %d days (%s – %s)"
+            % (
+                num_days,
+                first_date.strftime("%A %B %d %Y") if first_date else "",
+                last_date.strftime("%A %B %d %Y") if last_date else "",
+            )
         )
-    print(f"Processed data in {time.perf_counter() - t0:.2f} seconds.")
+    print("Processed data in %.2f seconds." % (time.perf_counter() - t0))
 
-    return MessageStats(
-        hour_count=hour_count,
-        month_count=month_count,
-        day_count=day_count,
-        day_name_count=day_name_count,
-        my_message_count=my_message_count,
-        other_message_count=other_message_count,
-        first_date=first_date,
-        last_date=last_date,
-    )
+    return {
+        "hour_count": dict(hour_count),
+        "month_count": dict(month_count),
+        "day_count": dict(day_count),
+        "day_name_count": dict(day_name_count),
+        "my_message_count": my_message_count,
+        "other_message_count": other_message_count,
+        "first_date": first_date,
+        "last_date": last_date,
+    }
 
 
-def _set_zeroes(obj: Dict[str, int], fmt: str) -> Dict[str, int]:
+def _set_zeroes(obj, fmt):
     """Fill missing dates in the dict with zeros for plotting continuity."""
     if not obj:
         return obj
     keys = list(obj.keys())
-    # assume keys are date-like strings compatible with the given format
     try:
         start = datetime.strptime(min(keys), fmt).date()
         end = date.today()
     except ValueError:
-        # if parsing fails, just return original
         return obj
 
-    rng = pd.date_range(start, end, freq="D" if "%d" in fmt else "MS")
-    for d in rng:
+    freq = "D" if "%d" in fmt else "MS"
+    for d in pd.date_range(start, end, freq=freq):
         key = d.strftime(fmt)
-        obj.setdefault(key, 0)
+        if key not in obj:
+            obj[key] = 0
     return obj
 
 
-def _show_bar_chart(
-    counts: Dict, x_label: str, y_label: str, title: str
-) -> None:
+def _show_bar_chart(counts, x_label, y_label, title):
     df = pd.DataFrame.from_dict(counts, orient="index", columns=[y_label])
     df.index.name = x_label
     df = df.sort_index()
@@ -211,51 +203,45 @@ def _show_bar_chart(
     _run_dash_app(fig)
 
 
-def show_monthly_graph(
-    month_count: Dict[str, int], person_a: str, person_b: str
-) -> None:
+def show_monthly_graph(month_count, person_a, person_b):
     month_count = _set_zeroes(month_count, "%Y-%m")
     _show_bar_chart(
         month_count,
         x_label="Month",
         y_label="Message Count",
-        title=f"Monthly message count between {person_a} and {person_b}",
+        title="Monthly message count between %s and %s" % (person_a, person_b),
     )
 
 
-def show_daily_graph(
-    day_count: Dict[str, int], person_a: str, person_b: str
-) -> None:
+def show_daily_graph(day_count, person_a, person_b):
     day_count = _set_zeroes(day_count, "%Y-%m-%d")
     _show_bar_chart(
         day_count,
         x_label="Day",
         y_label="Message Count",
-        title=f"Daily message count between {person_a} and {person_b}",
+        title="Daily message count between %s and %s" % (person_a, person_b),
     )
 
     max_day = max(day_count, key=day_count.get)
-    print(f"Highest day: {max_day} with {day_count[max_day]} messages")
+    print("Highest day: %s with %d messages" % (max_day, day_count[max_day]))
 
 
-def show_hourly_graph(
-    hour_count: Dict[int, int], person_a: str, person_b: str
-) -> None:
+def show_hourly_graph(hour_count, person_a, person_b):
     # Ensure we have keys 0–23
     for h in range(24):
-        hour_count.setdefault(h, 0)
-    # convert to string labels
-    counts = {f"{h:02d}:00": c for h, c in hour_count.items()}
+        if h not in hour_count:
+            hour_count[h] = 0
+    counts = {"%02d:00" % h: hour_count[h] for h in range(24)}
     _show_bar_chart(
         counts,
         x_label="Hour of day",
         y_label="Message Count",
-        title=f"Hourly message count between {person_a} and {person_b}",
+        title="Hourly message count between %s and %s" % (person_a, person_b),
     )
 
 
-def get_common_words(path_pattern: str) -> None:
-    dict_of_all_words: Dict[str, int] = {}
+def get_common_words(path_pattern):
+    dict_of_all_words = {}  # type: Dict[str, int]
     common_word_list = set(file_to_list("common_words.txt"))
 
     for path in glob.glob(path_pattern):
@@ -280,12 +266,12 @@ def get_common_words(path_pattern: str) -> None:
     print(sorted_words[:50])
 
 
-def get_person_b() -> str | None:
+def get_person_b():
     """
     Prompt for a search string, then prompt again with a disambiguated
     list of conversation titles. Returns the chosen title or None.
     """
-    search_name_ans = prompt(menus.name_menu)
+    search_name_ans = prompt(menus.name_menu) or {}
     name_input = search_name_ans.get("name_input")
     if not name_input:
         return None
@@ -301,16 +287,16 @@ def get_person_b() -> str | None:
         "message": "Choose a conversation:",
         "choices": matchlist,
     }
-    choose_name_ans = prompt(choose_name_menu)
+    choose_name_ans = prompt(choose_name_menu) or {}
     choice = choose_name_ans.get("name_opt")
     if choice == "Quit":
         return None
     return choice
 
 
-def _run_dash_app(fig) -> None:
+def _run_dash_app(fig):
     """Spin up a very simple Dash app to show a single figure."""
-    app = Dash(__name__)
+    app = dash.Dash(__name__)
     app.layout = html.Div(
         children=[
             html.H1(children="Messenger Analysis"),
@@ -320,21 +306,21 @@ def _run_dash_app(fig) -> None:
     app.run_server(debug=True)
 
 
-def main() -> None:
+def main():
     person_a = get_autofill("FULL_NAME") or "You"
 
     header = "╔════════════════════╗"
     footer = "╚════════════════════╝"
     print(
-        f"\n\t{header}\n\t Facebook Data Parser"
-        f"\n\t Welcome {person_a}!\n\t{footer}\n"
+        "\n\t%s\n\t Facebook Data Parser\n\t Welcome %s!\n\t%s\n"
+        % (header, person_a, footer)
     )
 
-    menu_ans = prompt(menus.entry_menu)
+    menu_ans = prompt(menus.entry_menu) or {}
     menu_choice = menu_ans.get("menu_opt", "")
 
     if "Quit" in menu_choice:
-        print(f"Goodbye {person_a}!")
+        print("Goodbye %s!" % person_a)
         sys.exit(0)
 
     person_b = get_person_b()
@@ -342,33 +328,31 @@ def main() -> None:
         print("No recipient selected. Exiting.")
         sys.exit(0)
 
-    # facebook uses folder names like "<normalized_name>_randomid"
     normalized_name = person_b.replace(" ", "").lower()
-    path_pattern = str(INBOX_DIR / f"{normalized_name}_*" / "message_*.json")
+    path_pattern = str(
+        INBOX_DIR / ("%s_*" % normalized_name) / "message_*.json"
+    )
 
     if "Most common words" in menu_choice:
-        print(f"Most common words between {person_a} and {person_b}")
+        print("Most common words between %s and %s" % (person_a, person_b))
         get_common_words(path_pattern)
         return
 
-    if any(
-        choice in menu_choice
-        for choice in ("word count", "Monthly", "Hourly", "Daily", "Day of week")
-    ):
-        stats = analyze_name(person_a, person_b, path_pattern)
-        graph_ans = prompt(menus.graph_menu)
-        if not graph_ans.get("show_graphs"):
-            return
+    stats = analyze_name(person_a, person_b, path_pattern)
 
-        if "Monthly word count" in menu_choice:
-            show_monthly_graph(stats.month_count, person_a, person_b)
-        elif "Hourly word count" in menu_choice:
-            show_hourly_graph(stats.hour_count, person_a, person_b)
-        elif "Daily word count" in menu_choice:
-            show_daily_graph(stats.day_count, person_a, person_b)
-        else:
-            # simple fallback – you could add a real "day of week" chart here
-            show_daily_graph(stats.day_count, person_a, person_b)
+    graph_ans = prompt(menus.graph_menu) or {}
+    if not graph_ans.get("show_graphs"):
+        return
+
+    if "Monthly word count" in menu_choice:
+        show_monthly_graph(stats["month_count"], person_a, person_b)
+    elif "Hourly word count" in menu_choice:
+        show_hourly_graph(stats["hour_count"], person_a, person_b)
+    elif "Daily word count" in menu_choice:
+        show_daily_graph(stats["day_count"], person_a, person_b)
+    else:
+        # fallback
+        show_daily_graph(stats["day_count"], person_a, person_b)
 
 
 if __name__ == "__main__":
